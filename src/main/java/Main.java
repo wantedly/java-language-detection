@@ -7,7 +7,39 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.sql.*;
 
+import java.util.ArrayList;
+import com.cybozu.labs.langdetect.Detector;
+import com.cybozu.labs.langdetect.DetectorFactory;
+import com.cybozu.labs.langdetect.LangDetectException;
+import com.cybozu.labs.langdetect.Language;
+
+class LangDetect {
+    public void init(String profileDirectory) throws LangDetectException {
+        DetectorFactory.loadProfile(profileDirectory);
+    }
+    public String detect(String text) throws LangDetectException {
+        Detector detector = DetectorFactory.create();
+        detector.append(text);
+        return detector.detect();
+    }
+    public ArrayList<Language> detectLangs(String text) throws LangDetectException {
+        Detector detector = DetectorFactory.create();
+        detector.append(text);
+        return detector.getProbabilities();
+    }
+}
+
 public class Main extends HttpServlet {
+  LangDetect langDetect;
+  Main() {
+    langDetect = new LangDetect();
+    try {
+      langDetect.init("profiles/");
+    } catch(LangDetectException e) {
+      System.err.println(e.getMessage());
+    }
+  }
+
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
@@ -22,6 +54,12 @@ public class Main extends HttpServlet {
   private void showHome(HttpServletRequest req, HttpServletResponse resp)
       throws ServletException, IOException {
     resp.getWriter().print("Hello from Java!");
+    try {
+      resp.getWriter().print(langDetect.detect("hello"));
+      resp.getWriter().print(langDetect.detect("こんにちは"));
+    } catch (LangDetectException e) {
+      System.err.println(e.getMessage());
+    }
   }
 
   private void showDatabase(HttpServletRequest req, HttpServletResponse resp)
